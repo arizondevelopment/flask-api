@@ -50,7 +50,7 @@ init_routes(app, db)
 from utils.parse_json_utils import scrape_and_get_reports, xbrl_to_json
 from utils.pdf_utils import process_pdf, process_pdf_and_store
 from utils.text_utils import extract_text_and_save, get_or_create_vector_store
-from utils.openai_utils import extract_json_from_images, analysis_from_html, append_guidance_analysis
+from utils.openai_utils import append_guidance_analysis, extract_json_from_images, analysis_from_html
 
 
 # Route for the root endpoint
@@ -270,19 +270,20 @@ def get_project_by_id_and_extract(project_id):
 
 
 @app.route('/api/projects/<project_id>/append', methods=['POST'])
+@cross_origin()
 def get_project_by_id_and_append(project_id):
-    try:
+
         if not ObjectId.is_valid(project_id):
             return jsonify({"error": "Invalid project ID"}), 400
 
         project = db.projects.find_one({"_id": ObjectId(project_id)})
         request_json = request.get_json()
         company_index = request_json['company_index']
-        existing_guidance = project['report'][company_index]['guidance']
         new_guidance_from_user = request_json['new_guidance']
-        scrapped_data = project['scrapped_data']
+        existing_guidance = project['report'][company_index]['guidance']
         reponse_from_append = append_guidance_analysis(project, company_index, existing_guidance, new_guidance_from_user)
-        new_report = project['report'][company_index]
+        print(reponse_from_append)
+        '''new_report = project['report'][company_index]
         new_report['guidance'] = reponse_from_append
 
 
@@ -301,7 +302,7 @@ def get_project_by_id_and_append(project_id):
     except Exception as e:
         print(e)
         logging.error(f"Error retrieving project by ID: {str(e)}")
-        return jsonify({"error": f"Error retrieving project by ID: {str(e)}"}), 500
+        return jsonify({"error": f"Error retrieving project by ID: {str(e)}"}), 500'''
 
 
 
@@ -381,6 +382,8 @@ def scrap_xbrl(project_id):
     except Exception as e:
         logging.error(f"Error processing chat request for project '{project_id}': {str(e)}")
         return jsonify({"error": f"Error processing chat request: {str(e)}"}), 500
+    
+    
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=PORT, debug=True)
